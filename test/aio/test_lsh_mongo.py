@@ -19,8 +19,7 @@ from datasketch.weighted_minhash import WeightedMinHashGenerator
 STORAGE_CONFIG_MONGO = {'type': 'aiomongo'}
 DO_TEST_MONGO = os.environ.get("DO_TEST_MONGO")
 
-MONGO_URL = os.environ.get("MONGO_UNIT_TEST_URL")
-if MONGO_URL:
+if MONGO_URL := os.environ.get("MONGO_UNIT_TEST_URL"):
     STORAGE_CONFIG_MONGO['mongo'] = {'url': MONGO_URL}
 else:
     STORAGE_CONFIG_MONGO['mongo'] = {'host': 'localhost', 'port': 27017, 'db': 'lsh_test'}
@@ -60,18 +59,17 @@ class TestAsyncMinHashLSH(aiounittest.AsyncTestCase):
         Check _H output consistent bytes length given
         the same concatenated hash value size
         """
-        for l in range(2, 128 + 1, 16):
+        for _ in range(2, 128 + 1, 16):
             m = MinHash()
             m.update("abcdefg".encode("utf8"))
             m.update("1234567".encode("utf8"))
             async with AsyncMinHashLSH(storage_config=self._storage_config_mongo,
-                                       num_perm=128) as lsh:
+                                               num_perm=128) as lsh:
                 await lsh.insert("m", m)
                 sizes = []
                 for ht in lsh.hashtables:
                     keys = await ht.keys()
-                    for H in keys:
-                        sizes.append(len(H))
+                    sizes.extend(len(H) for H in keys)
                 self.assertTrue(all(sizes[0] == s for s in sizes))
 
     @unittest.skipIf(not DO_TEST_MONGO, "Skipping test_insert_mongo")
@@ -221,7 +219,7 @@ class TestAsyncMinHashLSH(aiounittest.AsyncTestCase):
             for i in e:
                 obj.update(i.encode('utf-8'))
 
-        data = [(e, m) for e, m in zip(seq, objs)]
+        data = list(zip(seq, objs))
         keys_to_remove = ('aahhb', 'aahh', 'aahhc', 'aac', 'kld', 'bhg', 'kkd', 'yow', 'ppi', 'eer')
         keys_left = frozenset(seq) - frozenset(keys_to_remove)
 
@@ -327,7 +325,7 @@ class TestWeightedMinHashLSH(aiounittest.AsyncTestCase):
         the same concatenated hash value size
         """
         mg = WeightedMinHashGenerator(100, sample_size=128)
-        for l in range(2, mg.sample_size + 1, 16):
+        for _ in range(2, mg.sample_size + 1, 16):
             m = mg.minhash(np.random.randint(1, 99999999, 100))
             async with AsyncMinHashLSH(storage_config=self._storage_config_mongo,
                                        num_perm=128) as lsh:

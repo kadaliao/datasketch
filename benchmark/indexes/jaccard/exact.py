@@ -30,7 +30,7 @@ def search_jaccard_topk(index_data, query_data, k):
     index = SearchIndex(index_sets, similarity_func_name="jaccard",
             similarity_threshold=0.0)
     duration = time.perf_counter() - start
-    print("Finished building index in {:.3f}.".format(duration)) 
+    print("Finished building index in {:.3f}.".format(duration))
     times = []
     results = []
     for query_set, query_key in zip(query_sets, query_keys):
@@ -40,7 +40,7 @@ def search_jaccard_topk(index_data, query_data, k):
         duration = time.perf_counter() - start
         times.append(duration)
         results.append((query_key, result))
-        sys.stdout.write("\rQueried {} sets.".format(len(results)))
+        sys.stdout.write(f"\rQueried {len(results)} sets.")
     sys.stdout.write("\n")
     return (results, times)
 

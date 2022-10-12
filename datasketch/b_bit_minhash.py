@@ -38,7 +38,7 @@ class bBitMinHash(object):
             raise ValueError("r must be a float in [0.0, 1.0]")
         bmask = (1 << b) - 1
         self.hashvalues = np.bitwise_and(minhash.hashvalues, bmask)\
-                .astype(np.uint32)
+                    .astype(np.uint32)
         self.seed = minhash.seed
         self.b = b
         self.r = r
