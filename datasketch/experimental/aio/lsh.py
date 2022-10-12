@@ -343,9 +343,7 @@ class AsyncMinHashLSH(object):
             H = self._H(minhash.hashvalues[start:end])
             if await hashtable.has_key(H):
                 fs.append(hashtable.get(H))
-        candidates = set(chain.from_iterable(await asyncio.gather(*fs)))
-
-        return candidates
+        return set(chain.from_iterable(await asyncio.gather(*fs)))
 
     async def get_counts(self):
         """

@@ -83,7 +83,7 @@ class MinHashLSH(object):
 
     def __init__(self, threshold=0.9, num_perm=128, weights=(0.5, 0.5),
                  params=None, storage_config=None, prepickle=None, hashfunc=None):
-        storage_config = {'type': 'dict'} if not storage_config else storage_config
+        storage_config = storage_config or {'type': 'dict'}
         self._buffer_size = 50000
         if threshold > 1.0 or threshold < 0.0:
             raise ValueError("threshold must be in [0.0, 1.0]")
@@ -97,10 +97,10 @@ class MinHashLSH(object):
         if params is not None:
             self.b, self.r = params
             if self.b * self.r > num_perm:
-                raise ValueError("The product of b and r in params is "
-                        "{} * {} = {} -- it must be less than num_perm {}. "
-                        "Did you forget to specify num_perm?".format(
-                            self.b, self.r, self.b*self.r, num_perm))
+                raise ValueError(
+                    f"The product of b and r in params is {self.b} * {self.r} = {self.b * self.r} -- it must be less than num_perm {num_perm}. Did you forget to specify num_perm?"
+                )
+
         else:
             false_positive_weight, false_negative_weight = weights
             self.b, self.r = _optimal_param(threshold, num_perm,
@@ -109,11 +109,7 @@ class MinHashLSH(object):
         self.prepickle = storage_config['type'] == 'redis' if prepickle is None else prepickle
 
         self.hashfunc = hashfunc
-        if hashfunc:
-            self._H = self._hashed_byteswap
-        else:
-            self._H = self._byteswap
-
+        self._H = self._hashed_byteswap if hashfunc else self._byteswap
         basename = storage_config.get('basename', _random_name(11))
         self.hashtables = [
             unordered_storage(storage_config, name=b''.join([basename, b'_bucket_', struct.pack('>H', i)]))
@@ -230,16 +226,22 @@ class MinHashLSH(object):
         Returns:
             `list` of unique keys.
         '''
-        collected_result_sets = [
+        if collected_result_sets := [
             set(collected_result_lists)
             for hashtable in self.hashtables
             for collected_result_lists in hashtable.collect_select_buffer()
-        ]
-        if not collected_result_sets:
+        ]:
+            return (
+                [
+                    pickle.loads(key)
+                    for key in set.intersection(*collected_result_sets)
+                ]
+                if self.prepickle
+                else list(set.intersection(*collected_result_sets))
+            )
+
+        else:
             return []
-        if self.prepickle:
-            return [pickle.loads(key) for key in set.intersection(*collected_result_sets)]
-        return list(set.intersection(*collected_result_sets))
 
     def __contains__(self, key):
         '''
@@ -306,9 +308,7 @@ class MinHashLSH(object):
         Returns a list of length ``self.b`` with elements representing the
         number of keys stored under each bucket for the given permutation.
         '''
-        counts = [
-            hashtable.itemcounts() for hashtable in self.hashtables]
-        return counts
+        return [hashtable.itemcounts() for hashtable in self.hashtables]
 
     def get_subset_counts(self, *keys):
         '''

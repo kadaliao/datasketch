@@ -177,7 +177,7 @@ class MinHash(object):
             raise ValueError("Cannot compute Jaccard given MinHash with\
                     different numbers of permutation functions")
         return float(np.count_nonzero(self.hashvalues==other.hashvalues)) /\
-                float(len(self))
+                    float(len(self))
 
     def count(self):
         '''Estimate the cardinality count based on the technique described in
@@ -219,9 +219,7 @@ class MinHash(object):
             bool: If the current MinHash is empty - at the state of just
                 initialized.
         '''
-        if np.any(self.hashvalues != _max_hash):
-            return False
-        return True
+        return not np.any(self.hashvalues != _max_hash)
 
     def clear(self):
         '''

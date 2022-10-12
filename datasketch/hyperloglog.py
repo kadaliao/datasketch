@@ -53,9 +53,7 @@ class HyperLogLog(object):
             return 0.673
         if p == 5:
             return 0.697
-        if p == 6:
-            return 0.709
-        return 0.7213 / (1.0 + 1.079 / (1 << p))
+        return 0.709 if p == 6 else 0.7213 / (1.0 + 1.079 / (1 << p))
 
     def __init__(self, p=8, reg=None, hashfunc=sha1_hash32, hashobj=None):
         if reg is None:
@@ -142,10 +140,7 @@ class HyperLogLog(object):
             num_zero = self.m - np.count_nonzero(self.reg)
             return self._linearcounting(num_zero)
         # Normal range, no correction
-        if e <= (1.0 / 30.0) * (1 << 32):
-            return e
-        # Large range correction
-        return self._largerange_correction(e)
+        return e if e <= (1.0 / 30.0) * (1 << 32) else self._largerange_correction(e)
 
     def merge(self, other):
         '''
@@ -182,9 +177,7 @@ class HyperLogLog(object):
             bool: True if the current HyperLogLog is empty - at the state of just
             initialized.
         '''
-        if np.any(self.reg):
-            return False
-        return True
+        return not np.any(self.reg)
 
     def clear(self):
         '''
@@ -234,7 +227,7 @@ class HyperLogLog(object):
             raise ValueError("Cannot union less than 2 HyperLogLog\
                     sketches")
         m = hyperloglogs[0].m
-        if not all(h.m == m for h in hyperloglogs):
+        if any(h.m != m for h in hyperloglogs):
             raise ValueError("Cannot union HyperLogLog sketches with\
                     different precisions")
         reg = np.maximum.reduce([h.reg for h in hyperloglogs])
@@ -345,7 +338,4 @@ class HyperLogLogPlusPlus(HyperLogLog):
                 return lc
         # Use HyperLogLog estimation function
         e = self.alpha * float(self.m ** 2) / np.sum(2.0**(-self.reg))
-        if e <= 5 * self.m:
-            return e - self._estimate_bias(e, self.p)
-        else:
-            return e
+        return e - self._estimate_bias(e, self.p) if e <= 5 * self.m else e
